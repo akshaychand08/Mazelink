@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/* =========================
+   USERS & AUTH
+========================= */
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  password       String
+  role           String   // USER | ADMIN
+  status         String   // ACTIVE | BANNED
+  balance        Float    @default(0)
+
+  referralCode   String   @unique
+  referrerId     String?
+
+  createdAt      DateTime @default(now())
+
+  profile        UserProfile?
+  sessions       UserSession[]
+  links          Link[]
+  withdrawals    Withdrawal[]
+  referrals      User[]   @relation("UserReferrals")
+  referrer       User?    @relation("UserReferrals", fields: [referrerId], references: [id])
+  referralEarn   ReferralEarning[]
+  supportTickets SupportTicket[]
+
+  twoFactorAuth  TwoFactorAuth?
+}
+
+model UserProfile {
+  id        String  @id @default(uuid())
+  userId    String  @unique
+
+  firstName String?
+  lastName  String?
+  phone     String?
+  telegram  String?
+  address   String?
+  country   String?
+  state     String?
+  city      String?
+  zip       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSession {
+  id        String   @id @default(uuid())
+  userId    String
+  ip        String
+  device    String
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TwoFactorAuth {
+  userId  String  @id
+  secret  String
+  enabled Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/* =========================
+   LINKS & REDIRECT
+========================= */
+model Link {
+  id          String   @id @default(uuid())
+  userId      String
+  originalUrl String
+  shortCode   String   @unique
+  domain      String?
+  platform    String
+  status      String   // ACTIVE | HIDDEN | DISABLED
+  createdAt   DateTime @default(now())
+  lastClickAt DateTime?
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views  LinkView[]
+}
+
+/* =========================
+   ANALYTICS & EARNINGS
+========================= */
+model LinkView {
+  id        String   @id @default(uuid())
+  linkId    String
+  userId    String
+  ip        String
+  country   String
+  device    String
+  browser   String
+  source    String
+  earnings  Float
+  createdAt DateTime @default(now())
+
+  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
+}
+
+/* =========================
+   REFERRALS
+========================= */
+model ReferralEarning {
+  id         String   @id @default(uuid())
+  referrerId String
+  userId     String
+  amount     Float
+  createdAt  DateTime @default(now())
+
+  referrer User @relation(fields: [referrerId], references: [id])
+}
+
+/* =========================
+   WITHDRAWALS
+========================= */
+model PaymentMethod {
+  id        String   @id @default(uuid())
+  name      String
+  minAmount Float
+  enabled   Boolean @default(true)
+
+  withdrawals Withdrawal[]
+}
+
+model Withdrawal {
+  id        String   @id @default(uuid())
+  userId    String
+  methodId  String
+  amount    Float
+  status    String   // PENDING | APPROVED | COMPLETED | CANCELLED | RETURNED
+  createdAt DateTime @default(now())
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  method PaymentMethod @relation(fields: [methodId], references: [id])
+}
+
+/* =========================
+   TOOLS & API
+========================= */
+model ApiKey {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  key       String   @unique
+  enabled   Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/* =========================
+   SECURITY & FRAUD
+========================= */
+model FraudLog {
+  id        String   @id @default(uuid())
+  userId    String
+  ip        String
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+/* =========================
+   SUPPORT SYSTEM
+========================= */
+model SupportTicket {
+  id        String   @id @default(uuid())
+  userId    String
+  subject   String
+  message   String
+  email     String?
+  status    String   // OPEN | REPLIED | CLOSED
+  createdAt DateTime @default(now())
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies SupportReply[]
+}
+
+model SupportReply {
+  id        String   @id @default(uuid())
+  ticketId  String
+  adminId   String
+  message   String
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
+
+/* =========================
+   ANNOUNCEMENTS
+========================= */
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+/* =========================
+   SITE SETTINGS
+========================= */
+model SiteSetting {
+  key   String @id
+  value String
+}
