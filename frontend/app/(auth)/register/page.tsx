@@ -1,50 +1,61 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { register } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    try {
+      await register(email, password);
+      router.replace("/login");
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message || "Register failed"
+      );
+    }
+  }
+
   return (
     <>
       <h1 className="text-2xl font-bold text-center">
-        Create Account 🚀
+        Create Account
       </h1>
-      <p className="mt-2 text-center text-muted">
-        Start earning with Mazelink
-      </p>
 
-      <form className="mt-6 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-4">
         <input
-          type="email"
-          placeholder="Email address"
-          className="w-full rounded-xl border bg-transparent px-4 py-3 outline-none"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="Email"
+          className="w-full rounded-xl border px-4 py-3 bg-transparent"
         />
 
         <input
           type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
           placeholder="Password"
-          className="w-full rounded-xl border bg-transparent px-4 py-3 outline-none"
+          className="w-full rounded-xl border px-4 py-3 bg-transparent"
         />
 
-        <input
-          type="password"
-          placeholder="Confirm password"
-          className="w-full rounded-xl border bg-transparent px-4 py-3 outline-none"
-        />
+        {error && (
+          <p className="text-sm text-center text-red-500">
+            {error}
+          </p>
+        )}
 
-        <button
-          type="submit"
-          className="w-full rounded-xl bg-primary py-3 text-white font-medium"
-        >
+        <button className="w-full rounded-xl bg-primary py-3 text-white">
           Register
         </button>
       </form>
-
-      <p className="mt-4 text-center text-sm">
-        Already have an account?{" "}
-        <Link href="/login" className="text-primary">
-          Login
-        </Link>
-      </p>
     </>
   );
 }
