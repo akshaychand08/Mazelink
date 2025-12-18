@@ -1,46 +1,65 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { login } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/auth.store";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const setUser = useAuthStore(s => s.setUser);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const res = await login(email, password);
+      setUser(res.data.user);
+      router.replace("/");
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message || "Login failed"
+      );
+    }
+  }
+
   return (
     <>
       <h1 className="text-2xl font-bold text-center">
-        Welcome Back 👋
+        Login
       </h1>
-      <p className="mt-2 text-center text-muted">
-        Login to your Mazelink account
-      </p>
 
-      <form className="mt-6 space-y-4">
+      <form onSubmit={submit} className="mt-6 space-y-4">
         <input
-          type="email"
-          placeholder="Email address"
-          className="w-full rounded-xl border bg-transparent px-4 py-3 outline-none"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="Email"
+          className="w-full rounded-xl border px-4 py-3 bg-transparent"
         />
 
         <input
           type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
           placeholder="Password"
-          className="w-full rounded-xl border bg-transparent px-4 py-3 outline-none"
+          className="w-full rounded-xl border px-4 py-3 bg-transparent"
         />
 
-        <button
-          type="submit"
-          className="w-full rounded-xl bg-primary py-3 text-white font-medium"
-        >
+        {error && (
+          <p className="text-sm text-center text-red-500">
+            {error}
+          </p>
+        )}
+
+        <button className="w-full rounded-xl bg-primary py-3 text-white">
           Login
         </button>
       </form>
-
-      <div className="mt-4 flex justify-between text-sm">
-        <Link href="/forgot-password" className="text-primary">
-          Forgot password?
-        </Link>
-        <Link href="/register" className="text-primary">
-          Create account
-        </Link>
-      </div>
     </>
   );
 }
